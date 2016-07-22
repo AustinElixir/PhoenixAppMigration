@@ -1,58 +1,53 @@
-# The output of all these installation steps is noisy. With this utility
-# the progress report is nice and concise.
-function install {
-    echo installing $1
-    shift
-    apt-get -y install "$@" >/dev/null 2>&1
-}
+#!/usr/bin/env bash
+# Victor Torres <vpaivatorres@gmail.com>
+# August, 11th 2014
 
-echo adding swap file
-fallocate -l 2G /swapfile
-chmod 600 /swapfile
-mkswap /swapfile
-swapon /swapfile
-echo '/swapfile none swap defaults 0 0' >> /etc/fstab
+# default update
+apt-get autoclean -y
+apt-get clean -y
+apt-get update -y
 
-echo updating package information
-apt-add-repository -y ppa:brightbox/ruby-ng >/dev/null 2>&1
-apt-get -y update >/dev/null 2>&1
+# installing nodejs
+curl -sL https://deb.nodesource.com/setup_4.x | sudo -E bash -
+apt-get install nodejs npm -y
 
-install 'development tools' build-essential
+# install git
+apt-get install git -y
 
-install Ruby ruby2.3 ruby2.3-dev
-update-alternatives --set ruby /usr/bin/ruby2.3 >/dev/null 2>&1
-update-alternatives --set gem /usr/bin/gem2.3 >/dev/null 2>&1
+# set rvm directory permission
+chmod 755 -R /usr/local/rvm/
 
-echo installing Bundler
-gem install bundler -N >/dev/null 2>&1
+# Install Elixir
+wget https://s3.amazonaws.com/rebar3/rebar3 -O /usr/bin/rebar3
+chmod +x /usr/bin/rebar3
+wget https://packages.erlang-solutions.com/erlang-solutions_1.0_all.deb -O erlang-solutions_1.0_all.deb
+dpkg -i erlang-solutions_1.0_all.deb
+rm erlang-solutions_1.0_all.deb
+apt-get update -yq --fix-missing
+apt-get install -yq git erlang elixir
 
-install Git git
-install SQLite sqlite3 libsqlite3-dev
-install memcached memcached
-install Redis redis-server
-install RabbitMQ rabbitmq-server
+# Export var for non interactive mode
+export DEBIAN_FRONTEND=noninteractive
+apt-get -o Dpkg::Options::="--force-confnew" dist-upgrade -y
 
-install PostgreSQL postgresql postgresql-contrib libpq-dev
-sudo -u postgres createuser --superuser vagrant
-sudo -u postgres createdb -O vagrant activerecord_unittest
-sudo -u postgres createdb -O vagrant activerecord_unittest2
+# Install Phoenix+Postgresql
+yes | mix local.hex
+yes | mix archive.install https://github.com/phoenixframework/archives/raw/master/phoenix_new.ez
+apt-get install -yq inotify-tools postgresql-client postgresql postgresql-contrib
+sudo -u postgres psql -c "ALTER USER postgres PASSWORD 'postgres';"
+# setup SQL
+cp /vagrant/conf/pg_hba.conf /etc/postgresql/9.3/main/pg_hba.conf
+service postgresql restart
 
-debconf-set-selections <<< 'mysql-server mysql-server/root_password password root'
-debconf-set-selections <<< 'mysql-server mysql-server/root_password_again password root'
-install MySQL mysql-server libmysqlclient-dev
-mysql -uroot -proot <<SQL
-CREATE USER 'rails'@'localhost';
-CREATE DATABASE activerecord_unittest  DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci;
-CREATE DATABASE activerecord_unittest2 DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci;
-GRANT ALL PRIVILEGES ON activerecord_unittest.* to 'rails'@'localhost';
-GRANT ALL PRIVILEGES ON activerecord_unittest2.* to 'rails'@'localhost';
-GRANT ALL PRIVILEGES ON inexistent_activerecord_unittest.* to 'rails'@'localhost';
-SQL
+# Install Apache+PHP and Nginx
+apt-get install -yq nginx apache2 libapache2-mod-php5 php5-pgsql
+cp /vagrant/conf/vanilla_site.conf /etc/apache2/sites-enabled/vanilla_site.conf
+cp /vagrant/conf/ports.conf /etc/apache2/ports.conf
+cp /vagrant/conf/nginx_proxy /etc/nginx/sites-enabled/nginx_proxy
+rm /etc/apache2/sites-enabled/000-default.conf
+rm /etc/nginx/sites-enabled/default
 
-install 'Nokogiri dependencies' libxml2 libxml2-dev libxslt1-dev
-install 'ExecJS runtime' nodejs
+# Setup Rails Blog
+cd /vagrant/strawberry/rails_blog && bundle install
 
-# Needed for docs generation.
-update-locale LANG=en_US.UTF-8 LANGUAGE=en_US.UTF-8 LC_ALL=en_US.UTF-8
-
-echo 'all set, rock on!'
+echo "Completed"
