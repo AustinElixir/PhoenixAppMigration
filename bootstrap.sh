@@ -35,7 +35,10 @@ yes | mix local.hex
 yes | mix archive.install https://github.com/phoenixframework/archives/raw/master/phoenix_new.ez
 apt-get install -yq inotify-tools postgresql-client postgresql postgresql-contrib
 sudo -u postgres psql -c "ALTER USER postgres PASSWORD 'postgres';"
-# setup SQL
+su - postgres -c "echo '*:*:*:postgres:postgres' > ~/.pgpass"
+chmod 0600 ~postgres/.pgpass
+su - postgres -c "psql -c 'CREATE DATABASE vanilla'"
+su - postgres -c "psql vanilla < /vagrant/conf/posts.sql"
 cp /vagrant/conf/pg_hba.conf /etc/postgresql/9.3/main/pg_hba.conf
 service postgresql restart
 
@@ -46,8 +49,5 @@ cp /vagrant/conf/ports.conf /etc/apache2/ports.conf
 cp /vagrant/conf/nginx_proxy /etc/nginx/sites-enabled/nginx_proxy
 rm /etc/apache2/sites-enabled/000-default.conf
 rm /etc/nginx/sites-enabled/default
-
-# Setup Rails Blog
-cd /vagrant/strawberry/rails_blog && bundle install
 
 echo "Completed"
