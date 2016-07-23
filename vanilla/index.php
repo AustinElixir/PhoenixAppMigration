@@ -28,7 +28,7 @@ $result = pg_query($dbconn, "SELECT * FROM posts");
 
 while($row=pg_fetch_assoc($result)) {
 	echo "<p>Title: ";
-	echo "<a href='/newsite/posts/". $row['id'] ."/edit'>" . $row['title'] . "</a><br/>";
+	echo "<a href='/updates.php?action=edit&id=". $row['id'] ."'>" . $row['title'] . "</a><br/>";
 	echo "Body: ";
 	echo $row['body'] . "</p>";
 	
