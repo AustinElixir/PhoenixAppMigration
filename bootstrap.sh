@@ -8,8 +8,9 @@ apt-get clean -y
 apt-get update -y
 
 # installing nodejs
-curl -sL https://deb.nodesource.com/setup_4.x | sudo -E bash -
-apt-get install nodejs npm -y
+curl -sL https://deb.nodesource.com/setup_6.x | sudo -E bash -
+apt-get update -y
+apt-get install nodejs -y
 
 # install git
 apt-get install git -y
@@ -31,8 +32,8 @@ export DEBIAN_FRONTEND=noninteractive
 apt-get -o Dpkg::Options::="--force-confnew" dist-upgrade -y
 
 # Install Phoenix+Postgresql
-yes | mix local.hex
-yes | mix archive.install https://github.com/phoenixframework/archives/raw/master/phoenix_new.ez
+su - vagrant -c "yes | mix local.hex"
+su - vagrant -c "yes | mix archive.install https://github.com/phoenixframework/archives/raw/master/phoenix_new-1.2.0.ez"
 apt-get install -yq inotify-tools postgresql-client postgresql postgresql-contrib
 sudo -u postgres psql -c "ALTER USER postgres PASSWORD 'postgres';"
 su - postgres -c "echo '*:*:*:postgres:postgres' > ~/.pgpass"
@@ -49,5 +50,7 @@ cp /vagrant/conf/ports.conf /etc/apache2/ports.conf
 cp /vagrant/conf/nginx_proxy /etc/nginx/sites-enabled/nginx_proxy
 rm /etc/apache2/sites-enabled/000-default.conf
 rm /etc/nginx/sites-enabled/default
+service apache2 restart		
+service nginx restart
 
 echo "Completed"
